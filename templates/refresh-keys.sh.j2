@@ -1,0 +1,4 @@
+#!/bin/bash
+
+cp /etc/letsencrypt/live/{{ srv_domain }}/fullchain.pem {{ git_home }}/keys
+cp /etc/letsencrypt/live/{{ srv_domain }}/privkey.pem {{ git_home }}/keys

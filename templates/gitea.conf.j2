@@ -1,0 +1,37 @@
+<VirtualHost *:80>
+    ProxyPreserveHost On
+    ProxyRequests off
+    ProxyPass / http://localhost:3000/
+    ProxyPassReverse / http://localhost:3000/
+</VirtualHost>
+
+<VirtualHost *:443>
+
+SSLProxyEngine on
+SSLProxyVerify none 
+SSLProxyCheckPeerCN off
+SSLProxyCheckPeerName off
+SSLProxyCheckPeerExpire off
+
+ProxyPassReverseCookieDomain localhost git.{{ srv_domain }}
+SSLCertificateFile /etc/letsencrypt/live/{{ srv_domain }}/fullchain.pem
+SSLCertificateKeyFile /etc/letsencrypt/live/{{ srv_domain }}/privkey.pem
+
+ServerAdmin {{ srv_admin_mail }}
+ServerName git.{{ srv_domain }}
+ErrorLog ${APACHE_LOG_DIR}/error.log
+CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+ProxyRequests     Off
+ProxyPreserveHost On
+RewriteEngine On
+
+  <Proxy *>
+   Order allow,deny
+   Allow from all
+  </Proxy>
+
+ProxyPass / https://127.0.0.1:3000/
+ProxyPassReverse / https://127.0.0.1:3000/
+
+</VirtualHost>

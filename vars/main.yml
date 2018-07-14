@@ -1,0 +1,11 @@
+---
+# vars file for gitea
+git_user: git
+git_home: /opt/gitea
+gitea_version: 1.4.3
+srv_domain: "{{ group_srv_domain }}"
+
+
+srv_admin_mail: "{{ group_srv_admin_mail }}"
+
+# mysql_root_password: "{{ vault_mysql_root_password }}"

@@ -1,0 +1,24 @@
+APP_NAME = Gitea: Git with a cup of tea || by mDfRg
+RUN_USER = {{ git_user }}
+RUN_MODE = prod
+
+[server]
+PROTOCOL         = https
+ROOT_URL         = https://git.{{ srv_domain }}/
+CERT_FILE        = {{ git_home }}/keys/fullchain.pem
+KEY_FILE         = {{ git_home }}/keys/privkey.pem
+SSH_DOMAIN       = git.{{ srv_domain }}
+DOMAIN           = git.{{ srv_domain }}
+HTTP_PORT        = 3000
+DISABLE_SSH      = false
+SSH_PORT         = 22
+LFS_START_SERVER = true
+LFS_CONTENT_PATH = {{ git_home }}/LFS
+
+[repository]
+ROOT = /opt/gitea/repos
+
+[log]
+MODE      = file
+LEVEL     = Info
+ROOT_PATH = /opt/gitea/log

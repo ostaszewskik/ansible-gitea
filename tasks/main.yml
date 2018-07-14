@@ -1,0 +1,155 @@
+---
+# tasks file for gitea
+
+- name: add group git  
+  group:
+    name: "{{ git_user }}"
+    state: present
+
+- name: add user git  
+  user: 
+    name: "{{ git_user }}"
+    group: "{{ git_user }}"
+    shell: /bin/bash
+    password_lock: yes
+    home: "{{ git_home }}"
+    update_password: on_create
+
+- name: create git home
+  file:
+    path: "{{ git_home }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ git_user }}"
+    group: "{{ git_user }}"
+
+
+- name: download gitea
+  get_url: 
+    url: https://dl.gitea.io/gitea/{{ gitea_version }}/gitea-{{ gitea_version }}-linux-amd64 
+    dest: /usr/local/bin/gitea
+    mode: '755'
+    owner: "{{ git_user }}"
+    group: "{{ git_user }}"    
+
+- name: prepare directory structure 1
+  file: 
+    path: "{{ git_home }}/{{ item }}"
+    state: directory
+    mode: '0750'
+    owner: "{{ git_user }}"
+    group: "{{ git_user }}"   
+  with_items:
+    - data
+    - indexers
+    - log
+
+- name: prepare directory structure 2
+  file: 
+    path: "{{ git_home }}/{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ git_user }}"
+    group: "{{ git_user }}"       
+  with_items:
+    - custom
+    - public
+    - keys
+    - repos
+
+- name: start apache
+  tags: apache
+  service: 
+    name: apache2 
+    state: started
+
+- name: create gitea.conf for apache
+  tags: apache, gitea
+  template: 
+    src: gitea.conf.j2 
+    dest: /etc/apache2/sites-available/gitea.conf
+    mode: '0644'
+    group: root
+    owner: root
+
+- name: prepare apache
+  tags: apache
+  apache2_module:
+    state: present
+    name: "{{ item }}"
+  with_items:
+    - proxy
+    - proxy_http
+  notify: restart apache2
+
+- meta: flush_handlers
+  tags: apache
+
+- name: a2ensite gitea
+  tags: apache
+  file:
+    src: /etc/apache2/sites-available/gitea.conf
+    dest: /etc/apache2/sites-enabled/gitea.conf
+    state: link
+
+  notify: 
+    - restart apache2
+
+- name: create app.ini
+  tags: gitea
+  template: 
+    src: app.ini.j2 
+    dest: "{{ git_home }}/app.ini"
+    mode: '640'
+    group: git
+    owner: git
+
+- name: copy ssl keys
+  tags: gitea
+  copy:
+    src: "{{ item }}"
+    dest: "{{ git_home }}/keys"
+    remote_src: yes
+  with_items:
+    - "/etc/letsencrypt/live/{{ srv_domain }}/fullchain.pem"
+    - "/etc/letsencrypt/live/{{ srv_domain }}/privkey.pem"
+
+- name: create gitea service
+  tags: gitea
+  template: 
+    src: gitea.service.j2 
+    dest: /etc/systemd/system/gitea.service
+    mode: 644
+    group: root
+    owner: root
+  notify: start gitea service
+
+- name: create cronjob to refresh keys 1
+  tags: gitea
+  template: 
+    src: refresh-keys.sh.j2 
+    dest: "{{ git_home }}/refresh-keys.sh"
+    mode: '0750'
+    group: root
+    owner: root
+
+- name: create cronjob to refresh keys 2
+  tags: gitea
+  cron: 
+    name: refresh gitea ssl keys
+    weekday: 1
+    minute: 03
+    hour: 12
+    user: root
+    job: bash {{ git_home }}/refresh-keys.sh
+
+- name: start gitea
+  tags: gitea
+  service: 
+    name: gitea
+    state: started
+
+#######################################
+- name: delete gitea
+  tags: "never, uninstall"
+  import_tasks: uninstall.yml

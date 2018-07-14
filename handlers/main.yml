@@ -1,0 +1,8 @@
+---
+# handlers file for gitea
+
+- name: restart apache2
+  service: name=apache2 state=restarted
+
+- name: start gitea service
+  service: name=gitea state=started

@@ -1,0 +1,52 @@
+---
+# tasks file for uninstall gitea
+
+- name: stop gitea
+  tags: gitea
+  service: 
+    name: gitea
+    state: stopped
+  ignore_errors: yes 
+
+- name: delete user git  
+  user: 
+    name: "{{ git_user }}"
+    state: absent
+
+- name: delete group git  
+  group:
+    name: "{{ git_user }}"
+    state: absent
+
+
+- name: delete git home and executable
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ git_home }}"
+    - /usr/local/bin/gitea
+    - /etc/apache2/sites-available/gitea.conf
+    - /etc/apache2/sites-enabled/gitea.conf
+    - /etc/systemd/system/gitea.service
+
+
+- name: prepare apache
+  tags: apache
+  apache2_module:
+    state: absent
+    name: "{{ item }}"
+  with_items:
+    - proxy_http
+    - proxy
+  notify: restart apache2
+
+
+- name: delete cronjob to refresh keys
+  tags: gitea
+  cron: 
+    name: refresh gitea ssl keys
+    state: absent
+
+
+
